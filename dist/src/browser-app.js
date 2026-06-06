@@ -2,7 +2,7 @@ import React, { useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
 
 const h = React.createElement;
-const PERSONALIZATION_ENDPOINT = "https://h4helkp2ts274rh4rouvbsotau0dftik.lambda-url.eu-central-1.on.aws/";
+const PERSONALIZATION_ENDPOINT = "/api/personalization";
 
 const series = [
   {
@@ -96,6 +96,12 @@ const content = {
     formReady: "Endpoint для заявки не підключений.",
     formSent: "Готово. Заявка надіслана.",
     formError: "Не вдалося надіслати. Перевір AWS endpoint або CORS.",
+    sending: "Надсилаємо...",
+    successTitle: "Заявку отримано",
+    successText: "Ми отримали твої побажання щодо персоналізації та зв'яжемось при необхідності.",
+    errorTitle: "Не вдалося надіслати",
+    errorText: "Спробуй ще раз за кілька секунд або напиши нам напряму.",
+    close: "Закрити",
     requestTitle: "Заявка на персоналізацію",
     requestEmpty: "Введи текст",
     requestText: "Напис",
@@ -152,6 +158,12 @@ const content = {
     formReady: "The request endpoint is not connected.",
     formSent: "Done. The request has been sent.",
     formError: "Could not send it. Check the AWS endpoint or CORS.",
+    sending: "Sending...",
+    successTitle: "Request received",
+    successText: "We received your personalization wishes and will contact you if needed.",
+    errorTitle: "Could not send",
+    errorText: "Please try again in a few seconds or message us directly.",
+    close: "Close",
     requestTitle: "Personalization request",
     requestEmpty: "Enter text",
     requestText: "Text",
@@ -276,6 +288,7 @@ function Personalization({ engraving, placement, setEngraving, setPlacement, lan
   const [step, setStep] = useState(1);
   const [contact, setContact] = useState("");
   const [status, setStatus] = useState("idle");
+  const [modal, setModal] = useState(null);
   const displayText = engraving.trim() || t.requestEmpty;
   const placementOptions = [
     ["lid", t.lid],
@@ -313,109 +326,133 @@ function Personalization({ engraving, placement, setEngraving, setPlacement, lan
         body: JSON.stringify(payload),
       });
       if (!response.ok) throw new Error("Request failed");
-      setStatus("sent");
+      setEngraving("");
+      setPlacement("lid");
+      setContact("");
+      setStep(1);
+      setStatus("idle");
+      setModal({ title: t.successTitle, text: t.successText, type: "success" });
     } catch {
-      setStatus("error");
+      setStatus("idle");
+      setModal({ title: t.errorTitle, text: t.errorText, type: "error" });
     }
   }
 
   return h(
-    "section",
-    { className: "personalize section-band", id: "personalize" },
+    React.Fragment,
+    null,
     h(
-      "div",
-      { className: "personalize-copy" },
-      h("p", { className: "eyebrow" }, t.personalizeEyebrow),
-      h("h2", null, t.personalizeTitle),
-      h("p", null, t.personalizeText),
+      "section",
+      { className: "personalize section-band", id: "personalize" },
       h(
-        "form",
-        { className: "personalization-form", name: "personalization-request", onSubmit: submitRequest },
+        "div",
+        { className: "personalize-copy" },
+        h("p", { className: "eyebrow" }, t.personalizeEyebrow),
+        h("h2", null, t.personalizeTitle),
+        h("p", null, t.personalizeText),
         h(
-          "div",
-          { className: "form-steps", "aria-label": t.requestTitle },
-          [[1, t.stepText], [2, t.stepPlace], [3, t.stepContact]].map(([id, label]) =>
-            h("button", { className: `step-dot ${step === id ? "is-active" : ""}`, key: id, type: "button", onClick: () => setStep(id) }, h("span", null, id), label),
-          ),
-        ),
-        h(
-          "div",
-          { className: "form-panel" },
-          step === 1 &&
-            h(
-              React.Fragment,
-              null,
-              h("label", { htmlFor: "engravingText" }, t.engravingLabel),
-              h("input", {
-                id: "engravingText",
-                maxLength: 10,
-                name: "engraving",
-                type: "text",
-                value: engraving,
-                onChange: (event) => setEngraving(event.target.value.toUpperCase().slice(0, 10)),
-              }),
-              h("div", { className: "field-meta" }, h("small", null, t.engravingHint), h("span", null, `${engraving.length} / 10`)),
+          "form",
+          { className: "personalization-form", name: "personalization-request", onSubmit: submitRequest },
+          h(
+            "div",
+            { className: "form-steps", "aria-label": t.requestTitle },
+            [[1, t.stepText], [2, t.stepPlace], [3, t.stepContact]].map(([id, label]) =>
+              h("button", { className: `step-dot ${step === id ? "is-active" : ""}`, disabled: status === "sending", key: id, type: "button", onClick: () => setStep(id) }, h("span", null, id), label),
             ),
-          step === 2 &&
-            h(
-              React.Fragment,
-              null,
-              h("p", { className: "panel-title" }, t.placementTitle),
+          ),
+          h(
+            "div",
+            { className: "form-panel" },
+            step === 1 &&
               h(
-                "div",
-                { className: "placement-grid", role: "group", "aria-label": t.surface },
-                placementOptions.map(([id, label]) =>
-                  h(
-                    "button",
-                    { className: `placement-card ${placement === id ? "is-active" : ""}`, key: id, type: "button", onClick: () => setPlacement(id) },
-                    h("span", null, label),
-                    h("small", null, id === "both" ? `${t.lid} / ${t.box}` : t.surface),
+                React.Fragment,
+                null,
+                h("label", { htmlFor: "engravingText" }, t.engravingLabel),
+                h("input", {
+                  disabled: status === "sending",
+                  id: "engravingText",
+                  maxLength: 10,
+                  name: "engraving",
+                  type: "text",
+                  value: engraving,
+                  onChange: (event) => setEngraving(event.target.value.toUpperCase().slice(0, 10)),
+                }),
+                h("div", { className: "field-meta" }, h("small", null, t.engravingHint), h("span", null, `${engraving.length} / 10`)),
+              ),
+            step === 2 &&
+              h(
+                React.Fragment,
+                null,
+                h("p", { className: "panel-title" }, t.placementTitle),
+                h(
+                  "div",
+                  { className: "placement-grid", role: "group", "aria-label": t.surface },
+                  placementOptions.map(([id, label]) =>
+                    h(
+                      "button",
+                      { className: `placement-card ${placement === id ? "is-active" : ""}`, disabled: status === "sending", key: id, type: "button", onClick: () => setPlacement(id) },
+                      h("span", null, label),
+                      h("small", null, id === "both" ? `${t.lid} / ${t.box}` : t.surface),
+                    ),
                   ),
                 ),
               ),
-            ),
-          step === 3 &&
-            h(
-              React.Fragment,
-              null,
-              h("label", { htmlFor: "contactText" }, t.contactLabel),
-              h("input", {
-                id: "contactText",
-                name: "contact",
-                placeholder: t.contactPlaceholder,
-                type: "text",
-                value: contact,
-                onChange: (event) => setContact(event.target.value),
-              }),
-            ),
+            step === 3 &&
+              h(
+                React.Fragment,
+                null,
+                h("label", { htmlFor: "contactText" }, t.contactLabel),
+                h("input", {
+                  disabled: status === "sending",
+                  id: "contactText",
+                  name: "contact",
+                  placeholder: t.contactPlaceholder,
+                  type: "text",
+                  value: contact,
+                  onChange: (event) => setContact(event.target.value),
+                }),
+              ),
+          ),
+          h(
+            "div",
+            { className: "form-actions" },
+            h("button", { className: "button button-secondary", disabled: step === 1 || status === "sending", type: "button", onClick: () => setStep(Math.max(1, step - 1)) }, t.back),
+            step < 3
+              ? h("button", { className: "button button-primary", disabled: status === "sending" || (step === 1 && !canContinueFromText), type: "button", onClick: () => setStep(Math.min(3, step + 1)) }, t.next)
+              : h("button", { className: "button button-primary", disabled: !canSubmit || status === "sending", type: "submit" }, status === "sending" ? t.sending : t.submitRequest),
+          ),
+          status === "ready" && h("p", { className: "submit-status" }, t.formReady),
         ),
+      ),
+      h(
+        "div",
+        { className: "personalization-request" },
+        h("span", { className: "request-kicker" }, "TIA Candles"),
+        h("h3", null, t.requestTitle),
+        h(
+          "dl",
+          null,
+          h("div", null, h("dt", null, t.requestText), h("dd", { className: engraving.trim() ? "" : "is-muted" }, displayText)),
+          h("div", null, h("dt", null, t.requestPlacement), h("dd", null, placementLabel)),
+          h("div", null, h("dt", null, t.requestContact), h("dd", { className: contact.trim() ? "" : "is-muted" }, contact.trim() || t.contactPlaceholder)),
+        ),
+        h("p", null, t.personalizeText),
+      ),
+    ),
+    modal &&
+      h(
+        "div",
+        { className: "status-modal", role: "dialog", "aria-modal": "true", "aria-labelledby": "personalizationStatusTitle" },
+        h("div", { className: "status-modal-backdrop", onClick: () => setModal(null) }),
         h(
           "div",
-          { className: "form-actions" },
-          h("button", { className: "button button-secondary", disabled: step === 1, type: "button", onClick: () => setStep(Math.max(1, step - 1)) }, t.back),
-          step < 3
-            ? h("button", { className: "button button-primary", disabled: step === 1 && !canContinueFromText, type: "button", onClick: () => setStep(Math.min(3, step + 1)) }, t.next)
-            : h("button", { className: "button button-primary", disabled: !canSubmit || status === "sending", type: "submit" }, t.submitRequest),
+          { className: `status-modal-card is-${modal.type}` },
+          h("span", { className: "status-dot", "aria-hidden": "true" }),
+          h("h3", { id: "personalizationStatusTitle" }, modal.title),
+          h("p", null, modal.text),
+          h("button", { className: "button button-primary", type: "button", onClick: () => setModal(null) }, t.close),
         ),
-        status === "ready" && h("p", { className: "submit-status" }, t.formReady),
-        status === "sent" && h("p", { className: "submit-status" }, t.formSent),
-        status === "error" && h("p", { className: "submit-status is-error" }, t.formError),
       ),
-    ),
-    h(
-      "div",
-      { className: "personalization-request" },
-      h("span", { className: "request-kicker" }, "TIA Candles"),
-      h("h3", null, t.requestTitle),
-      h(
-        "dl",
-        null,
-        h("div", null, h("dt", null, t.requestText), h("dd", { className: engraving.trim() ? "" : "is-muted" }, displayText)),
-        h("div", null, h("dt", null, t.requestPlacement), h("dd", null, placementLabel)),
-        h("div", null, h("dt", null, t.requestContact), h("dd", { className: contact.trim() ? "" : "is-muted" }, contact.trim() || t.contactPlaceholder)),
-      ),
-      h("p", null, t.personalizeText),
-    ),
   );
 }
 
@@ -430,7 +467,7 @@ function FinalCta({ t }) {
 function App() {
   const [lang, setLang] = useState("uk");
   const [activeSeries, setActiveSeries] = useState("home");
-  const [engraving, setEngraving] = useState("SOFIA");
+  const [engraving, setEngraving] = useState("");
   const [placement, setPlacement] = useState("lid");
   const t = useMemo(() => content[lang], [lang]);
 
