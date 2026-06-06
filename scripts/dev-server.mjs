@@ -87,7 +87,7 @@ async function serveStatic(req, res) {
 }
 
 const server = createServer((req, res) => {
-  if (req.method === "POST" && req.url === "/api/personalization") {
+  if (req.method === "POST" && ["/api/personalization", "/api/personalization/"].includes(req.url || "")) {
     proxyPersonalization(req, res);
     return;
   }

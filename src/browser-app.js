@@ -2,7 +2,7 @@ import React, { useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
 
 const h = React.createElement;
-const PERSONALIZATION_ENDPOINT = "/api/personalization";
+const PERSONALIZATION_ENDPOINT = "/api/personalization/";
 
 const series = [
   {

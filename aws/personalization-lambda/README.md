@@ -11,7 +11,7 @@ and sends it to email through Amazon SES.
 ## Frontend Connection
 
 Deploy this function behind a Lambda Function URL or API Gateway endpoint. The
-frontend posts to `/api/personalization`, so add an Amplify Hosting rewrite from
+frontend posts to `/api/personalization/`, so add an Amplify Hosting rewrite from
 that path to the Lambda Function URL. See `aws/amplify-rewrite.md`.
 
 ## AWS Console Test Event
