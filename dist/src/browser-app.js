@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
+import { PERSONALIZATION_ENDPOINT } from "./config.js";
 
 const h = React.createElement;
 
@@ -80,15 +81,29 @@ const content = {
     personalizeEyebrow: "Laser engraving",
     personalizeTitle: "Додай персональний напис.",
     personalizeText:
-      "Вкажи коротку персоналізацію до 10 символів. Ми нанесемо її лазером на кришку або коробку.",
+      "Пройди кілька коротких кроків: введи напис, обери місце гравіювання і залиш контакт для підтвердження.",
+    stepText: "Напис",
+    stepPlace: "Місце",
+    stepContact: "Контакт",
     engravingLabel: "Бажана персоналізація",
     engravingHint: "До 10 символів: ініціали, ім'я, дата або коротке слово.",
+    placementTitle: "Де зробити гравіювання?",
+    contactLabel: "Контакт для заявки",
+    contactPlaceholder: "Телефон, email або Instagram",
+    next: "Далі",
+    back: "Назад",
+    submitRequest: "Надіслати заявку",
+    formReady: "Підключи AWS endpoint у src/config.js, щоб заявки прилітали тобі.",
+    formSent: "Готово. Заявка надіслана.",
+    formError: "Не вдалося надіслати. Перевір AWS endpoint або CORS.",
     requestTitle: "Заявка на персоналізацію",
     requestEmpty: "Введи текст",
     requestText: "Напис",
     requestPlacement: "Нанесення",
+    requestContact: "Контакт",
     lid: "Кришка",
     box: "Коробка",
+    both: "Кришка + коробка",
     surface: "Поверхня",
     benefitsEyebrow: "Чому це працює",
     benefitsTitle: "Подарунок, який виглядає продуманим.",
@@ -122,15 +137,29 @@ const content = {
     personalizeEyebrow: "Laser engraving",
     personalizeTitle: "Add a personal inscription.",
     personalizeText:
-      "Enter a short personalization up to 10 characters. We can laser it onto the lid or the box.",
+      "Complete a few quick steps: enter the inscription, choose the engraving placement, and leave a contact for confirmation.",
+    stepText: "Text",
+    stepPlace: "Place",
+    stepContact: "Contact",
     engravingLabel: "Desired personalization",
     engravingHint: "Up to 10 characters: initials, name, date, or a short word.",
+    placementTitle: "Where should we engrave it?",
+    contactLabel: "Contact for the request",
+    contactPlaceholder: "Phone, email, or Instagram",
+    next: "Next",
+    back: "Back",
+    submitRequest: "Send request",
+    formReady: "Add the AWS endpoint in src/config.js so requests can reach you.",
+    formSent: "Done. The request has been sent.",
+    formError: "Could not send it. Check the AWS endpoint or CORS.",
     requestTitle: "Personalization request",
     requestEmpty: "Enter text",
     requestText: "Text",
     requestPlacement: "Placement",
+    requestContact: "Contact",
     lid: "Lid",
     box: "Box",
+    both: "Lid + box",
     surface: "Surface",
     benefitsEyebrow: "Why it works",
     benefitsTitle: "A gift that looks considered.",
@@ -243,8 +272,52 @@ function Collection({ lang, t, setActiveSeries }) {
   );
 }
 
-function Personalization({ engraving, placement, setEngraving, setPlacement, t }) {
+function Personalization({ engraving, placement, setEngraving, setPlacement, lang, t }) {
+  const [step, setStep] = useState(1);
+  const [contact, setContact] = useState("");
+  const [status, setStatus] = useState("idle");
   const displayText = engraving.trim() || t.requestEmpty;
+  const placementOptions = [
+    ["lid", t.lid],
+    ["box", t.box],
+    ["both", t.both],
+  ];
+  const placementLabel = placementOptions.find(([id]) => id === placement)?.[1] ?? t.lid;
+  const canContinueFromText = engraving.trim().length > 0;
+  const canSubmit = canContinueFromText && contact.trim().length > 2;
+
+  async function submitRequest(event) {
+    event.preventDefault();
+    if (!canSubmit) return;
+
+    const payload = {
+      engraving: engraving.trim(),
+      placement: placementLabel,
+      contact: contact.trim(),
+      language: lang.toUpperCase(),
+      source: "TIA Candles landing",
+      createdAt: new Date().toISOString(),
+    };
+
+    if (!PERSONALIZATION_ENDPOINT) {
+      setStatus("ready");
+      return;
+    }
+
+    setStatus("sending");
+    try {
+      const response = await fetch(PERSONALIZATION_ENDPOINT, {
+        method: "POST",
+        headers: { "Content-Type": "text/plain;charset=UTF-8" },
+        body: JSON.stringify(payload),
+      });
+      if (!response.ok) throw new Error("Request failed");
+      setStatus("sent");
+    } catch {
+      setStatus("error");
+    }
+  }
+
   return h(
     "section",
     { className: "personalize section-band", id: "personalize" },
@@ -255,22 +328,77 @@ function Personalization({ engraving, placement, setEngraving, setPlacement, t }
       h("h2", null, t.personalizeTitle),
       h("p", null, t.personalizeText),
       h(
-        "div",
-        { className: "controls" },
-        h("label", { htmlFor: "engravingText" }, t.engravingLabel),
-        h("input", {
-          id: "engravingText",
-          maxLength: 10,
-          type: "text",
-          value: engraving,
-          onChange: (event) => setEngraving(event.target.value.toUpperCase()) }),
-        h("small", { className: "input-hint" }, t.engravingHint),
+        "form",
+        { className: "personalization-form", name: "personalization-request", onSubmit: submitRequest },
         h(
           "div",
-          { className: "control-row" },
-          h("div", { className: "segmented", role: "group", "aria-label": t.surface }, [["lid", t.lid], ["box", t.box]].map(([id, label]) => h("button", { className: `segment ${placement === id ? "is-active" : ""}`, key: id, type: "button", onClick: () => setPlacement(id) }, label))),
-          h("span", null, `${engraving.length} / 10`),
+          { className: "form-steps", "aria-label": t.requestTitle },
+          [[1, t.stepText], [2, t.stepPlace], [3, t.stepContact]].map(([id, label]) =>
+            h("button", { className: `step-dot ${step === id ? "is-active" : ""}`, key: id, type: "button", onClick: () => setStep(id) }, h("span", null, id), label),
+          ),
         ),
+        h(
+          "div",
+          { className: "form-panel" },
+          step === 1 &&
+            h(
+              React.Fragment,
+              null,
+              h("label", { htmlFor: "engravingText" }, t.engravingLabel),
+              h("input", {
+                id: "engravingText",
+                maxLength: 10,
+                name: "engraving",
+                type: "text",
+                value: engraving,
+                onChange: (event) => setEngraving(event.target.value.toUpperCase().slice(0, 10)),
+              }),
+              h("div", { className: "field-meta" }, h("small", null, t.engravingHint), h("span", null, `${engraving.length} / 10`)),
+            ),
+          step === 2 &&
+            h(
+              React.Fragment,
+              null,
+              h("p", { className: "panel-title" }, t.placementTitle),
+              h(
+                "div",
+                { className: "placement-grid", role: "group", "aria-label": t.surface },
+                placementOptions.map(([id, label]) =>
+                  h(
+                    "button",
+                    { className: `placement-card ${placement === id ? "is-active" : ""}`, key: id, type: "button", onClick: () => setPlacement(id) },
+                    h("span", null, label),
+                    h("small", null, id === "both" ? `${t.lid} / ${t.box}` : t.surface),
+                  ),
+                ),
+              ),
+            ),
+          step === 3 &&
+            h(
+              React.Fragment,
+              null,
+              h("label", { htmlFor: "contactText" }, t.contactLabel),
+              h("input", {
+                id: "contactText",
+                name: "contact",
+                placeholder: t.contactPlaceholder,
+                type: "text",
+                value: contact,
+                onChange: (event) => setContact(event.target.value),
+              }),
+            ),
+        ),
+        h(
+          "div",
+          { className: "form-actions" },
+          h("button", { className: "button button-secondary", disabled: step === 1, type: "button", onClick: () => setStep(Math.max(1, step - 1)) }, t.back),
+          step < 3
+            ? h("button", { className: "button button-primary", disabled: step === 1 && !canContinueFromText, type: "button", onClick: () => setStep(Math.min(3, step + 1)) }, t.next)
+            : h("button", { className: "button button-primary", disabled: !canSubmit || status === "sending", type: "submit" }, t.submitRequest),
+        ),
+        status === "ready" && h("p", { className: "submit-status" }, t.formReady),
+        status === "sent" && h("p", { className: "submit-status" }, t.formSent),
+        status === "error" && h("p", { className: "submit-status is-error" }, t.formError),
       ),
     ),
     h(
@@ -282,7 +410,8 @@ function Personalization({ engraving, placement, setEngraving, setPlacement, t }
         "dl",
         null,
         h("div", null, h("dt", null, t.requestText), h("dd", { className: engraving.trim() ? "" : "is-muted" }, displayText)),
-        h("div", null, h("dt", null, t.requestPlacement), h("dd", null, placement === "lid" ? t.lid : t.box)),
+        h("div", null, h("dt", null, t.requestPlacement), h("dd", null, placementLabel)),
+        h("div", null, h("dt", null, t.requestContact), h("dd", { className: contact.trim() ? "" : "is-muted" }, contact.trim() || t.contactPlaceholder)),
       ),
       h("p", null, t.personalizeText),
     ),
@@ -308,7 +437,7 @@ function App() {
     React.Fragment,
     null,
     h(Header, { lang, setLang, t }),
-    h("main", null, h(Hero, { activeSeries, lang, setActiveSeries, t }), h(Intro, { t }), h(Collection, { lang, t, setActiveSeries }), h(Personalization, { engraving, placement, setEngraving, setPlacement, t }), h(Benefits, { t }), h(FinalCta, { t })),
+    h("main", null, h(Hero, { activeSeries, lang, setActiveSeries, t }), h(Intro, { t }), h(Collection, { lang, t, setActiveSeries }), h(Personalization, { engraving, placement, setEngraving, setPlacement, lang, t }), h(Benefits, { t }), h(FinalCta, { t })),
     h("footer", { className: "site-footer" }, h("span", null, "TIA Candles"), h("a", { href: "https://tiacandles.com/", target: "_blank", rel: "noreferrer" }, "tiacandles.com")),
   );
 }

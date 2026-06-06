@@ -493,24 +493,94 @@ h3 {
   max-width: 650px;
 }
 
-.controls {
+.personalization-form {
   display: grid;
-  gap: 12px;
+  gap: 16px;
   margin-top: 28px;
+  padding: clamp(16px, 2.4vw, 24px);
+  border: 1px solid rgba(164, 108, 79, 0.2);
+  border-radius: 8px;
+  background: rgba(255, 253, 249, 0.72);
+  box-shadow: 0 18px 54px rgba(64, 50, 37, 0.06);
 }
 
-.controls label {
+.form-steps {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.step-dot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 42px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--cream);
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.step-dot span {
+  display: grid;
+  width: 22px;
+  height: 22px;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--soft);
+  color: var(--ink);
+  font-size: 0.78rem;
+}
+
+.step-dot.is-active {
+  border-color: var(--ink);
+  background: var(--ink);
+  color: var(--cream);
+}
+
+.step-dot.is-active span {
+  background: var(--cream);
+}
+
+.form-panel {
+  display: grid;
+  min-height: 164px;
+  align-content: start;
+  gap: 12px;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--cream);
+}
+
+.personalization-form label,
+.panel-title {
   color: var(--muted);
   font-size: 0.9rem;
   font-weight: 800;
 }
 
-.input-hint {
+.panel-title {
+  margin: 0;
+}
+
+.field-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
   color: var(--muted);
   line-height: 1.5;
 }
 
-.controls input {
+.field-meta span {
+  white-space: nowrap;
+}
+
+.personalization-form input {
   width: 100%;
   min-height: 54px;
   border: 1px solid var(--line);
@@ -521,17 +591,69 @@ h3 {
   padding: 0 16px;
 }
 
-.controls input:focus {
+.personalization-form input:focus {
   border-color: var(--ink);
 }
 
-.control-row {
+.placement-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.placement-card {
+  display: grid;
+  gap: 8px;
+  min-height: 92px;
+  align-content: center;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--paper);
+  color: var(--ink);
+  cursor: pointer;
+  padding: 14px;
+  text-align: left;
+}
+
+.placement-card span {
+  font-weight: 900;
+}
+
+.placement-card small {
+  color: var(--muted);
+}
+
+.placement-card.is-active {
+  border-color: var(--ink);
+  background: var(--ink);
+  color: var(--cream);
+}
+
+.placement-card.is-active small {
+  color: rgba(255, 253, 249, 0.76);
+}
+
+.form-actions {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 14px;
+}
+
+.button:disabled {
+  cursor: not-allowed;
+  opacity: 0.48;
+}
+
+.submit-status {
+  margin: 0;
   color: var(--muted);
-  font-size: 0.9rem;
+  font-size: 0.92rem;
+  line-height: 1.5;
+}
+
+.submit-status.is-error {
+  color: #8c3e2f;
 }
 
 .personalization-request {
@@ -698,6 +820,10 @@ h3 {
   .personalization-request {
     min-height: 0;
   }
+
+  .placement-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 560px) {
@@ -785,15 +911,78 @@ h3 {
   .collection,
   .benefits,
   .final-cta {
-    margin-inline: 16px;
+    margin-inline: 14px;
   }
 
   .intro,
   .personalize {
-    padding: 28px 18px;
+    padding: 24px 16px;
   }
 
-  .control-row,
+  .personalize {
+    gap: 18px;
+  }
+
+  .personalize h2 {
+    font-size: clamp(2.45rem, 13vw, 3.25rem);
+  }
+
+  .personalization-form {
+    margin-top: 20px;
+    padding: 14px;
+  }
+
+  .form-steps {
+    gap: 6px;
+  }
+
+  .step-dot {
+    gap: 5px;
+    min-height: 38px;
+    padding: 0 6px;
+    font-size: 0.76rem;
+  }
+
+  .step-dot span {
+    width: 20px;
+    height: 20px;
+  }
+
+  .form-panel {
+    min-height: 0;
+    padding: 14px;
+  }
+
+  .field-meta {
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .placement-card {
+    min-height: 68px;
+  }
+
+  .form-actions {
+    align-items: stretch;
+  }
+
+  .form-actions .button {
+    width: 100%;
+  }
+
+  .personalization-request {
+    gap: 14px;
+    padding: 18px;
+  }
+
+  .personalization-request h3 {
+    font-size: 2rem;
+  }
+
+  .personalization-request p {
+    display: none;
+  }
+
   .site-footer {
     align-items: flex-start;
     flex-direction: column;

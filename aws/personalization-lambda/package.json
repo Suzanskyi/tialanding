@@ -1,0 +1,8 @@
+{
+  "name": "tia-personalization-lambda",
+  "type": "module",
+  "private": true,
+  "dependencies": {
+    "@aws-sdk/client-sesv2": "^3.0.0"
+  }
+}
