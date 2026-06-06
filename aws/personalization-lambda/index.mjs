@@ -4,16 +4,11 @@ const ses = new SESv2Client({});
 
 function getCorsHeaders(event) {
   const origin = event.headers?.origin || event.headers?.Origin || "";
-  const allowedOrigins = (process.env.ALLOWED_ORIGINS || process.env.ALLOWED_ORIGIN || "*")
-    .split(",")
-    .map((item) => item.trim())
-    .filter(Boolean);
-  const allowOrigin = allowedOrigins.includes("*") || allowedOrigins.includes(origin) ? origin || "*" : allowedOrigins[0];
 
   return {
     "Access-Control-Allow-Headers": "content-type",
     "Access-Control-Allow-Methods": "OPTIONS,POST",
-    "Access-Control-Allow-Origin": allowOrigin,
+    "Access-Control-Allow-Origin": origin || "*",
     "Vary": "Origin",
   };
 }
@@ -26,13 +21,22 @@ function response(event, statusCode, body) {
   };
 }
 
+function parseRequestData(event) {
+  if (event.body) {
+    const body = event.isBase64Encoded ? Buffer.from(event.body, "base64").toString("utf8") : event.body;
+    return JSON.parse(body);
+  }
+
+  return event;
+}
+
 export async function handler(event) {
   if (event.requestContext?.http?.method === "OPTIONS" || event.httpMethod === "OPTIONS") {
     return response(event, 204, {});
   }
 
   try {
-    const data = JSON.parse(event.body || "{}");
+    const data = parseRequestData(event);
     const engraving = String(data.engraving || "").trim().slice(0, 10);
     const placement = String(data.placement || "").trim();
     const contact = String(data.contact || "").trim();

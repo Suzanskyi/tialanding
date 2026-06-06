@@ -7,26 +7,52 @@ and sends it to email through Amazon SES.
 
 - `FROM_EMAIL`: verified SES sender email.
 - `TO_EMAIL`: email that should receive requests.
-- `ALLOWED_ORIGINS`: comma-separated allowed origins, for example
-  `https://main.example.amplifyapp.com,http://127.0.0.1:4173`.
-  You can use `*` while testing, then restrict it to the Amplify domain.
 
 ## Frontend Connection
 
-Deploy this function behind a Lambda Function URL or API Gateway endpoint, then paste
-that URL into `src/config.js`:
+Deploy this function behind a Lambda Function URL or API Gateway endpoint. The
+frontend currently posts to the Lambda Function URL defined in `src/browser-app.js`.
 
-```js
-export const PERSONALIZATION_ENDPOINT = "https://your-aws-endpoint";
+## AWS Console Test Event
+
+For the Lambda console test button, use either this simple event:
+
+```json
+{
+  "engraving": "SOFIA",
+  "placement": "Кришка",
+  "contact": "+380000000000",
+  "language": "UK"
+}
 ```
 
-Run `npm run build` after changing the endpoint.
+Or this Lambda Function URL-style event:
+
+```json
+{
+  "requestContext": {
+    "http": {
+      "method": "POST"
+    }
+  },
+  "headers": {
+    "origin": "https://landing.tiacandles.com"
+  },
+  "body": "{\"engraving\":\"SOFIA\",\"placement\":\"Кришка\",\"contact\":\"+380000000000\",\"language\":\"UK\"}"
+}
+```
+
+If the response is `400 Missing required fields`, the test event does not include
+`engraving`, `placement`, and `contact` in a format the function received.
 
 ## CORS Note
 
 The frontend sends the request as `text/plain` with a JSON body to avoid a browser
-preflight request. If you enable CORS in the Lambda Function URL settings, allow:
+preflight request. The Lambda mirrors the incoming `Origin` header, so local
+testing from `http://127.0.0.1:4173` and production requests can both work.
 
-- origin: your Amplify domain, plus `http://127.0.0.1:4173` for local testing;
+If you enable CORS in the Lambda Function URL settings, allow:
+
+- origin: `*`, or your Amplify domain plus `http://127.0.0.1:4173`;
 - methods: `POST`, `OPTIONS`;
 - headers: `content-type`.

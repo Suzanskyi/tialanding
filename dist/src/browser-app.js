@@ -1,8 +1,8 @@
 import React, { useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
-import { PERSONALIZATION_ENDPOINT } from "./config.js";
 
 const h = React.createElement;
+const PERSONALIZATION_ENDPOINT = "https://h4helkp2ts274rh4rouvbsotau0dftik.lambda-url.eu-central-1.on.aws/";
 
 const series = [
   {
@@ -93,7 +93,7 @@ const content = {
     next: "Далі",
     back: "Назад",
     submitRequest: "Надіслати заявку",
-    formReady: "Підключи AWS endpoint у src/config.js, щоб заявки прилітали тобі.",
+    formReady: "Endpoint для заявки не підключений.",
     formSent: "Готово. Заявка надіслана.",
     formError: "Не вдалося надіслати. Перевір AWS endpoint або CORS.",
     requestTitle: "Заявка на персоналізацію",
@@ -149,7 +149,7 @@ const content = {
     next: "Next",
     back: "Back",
     submitRequest: "Send request",
-    formReady: "Add the AWS endpoint in src/config.js so requests can reach you.",
+    formReady: "The request endpoint is not connected.",
     formSent: "Done. The request has been sent.",
     formError: "Could not send it. Check the AWS endpoint or CORS.",
     requestTitle: "Personalization request",
@@ -290,6 +290,7 @@ function Personalization({ engraving, placement, setEngraving, setPlacement, lan
     event.preventDefault();
     if (!canSubmit) return;
 
+    const endpoint = PERSONALIZATION_ENDPOINT.trim();
     const payload = {
       engraving: engraving.trim(),
       placement: placementLabel,
@@ -299,14 +300,14 @@ function Personalization({ engraving, placement, setEngraving, setPlacement, lan
       createdAt: new Date().toISOString(),
     };
 
-    if (!PERSONALIZATION_ENDPOINT) {
+    if (!endpoint) {
       setStatus("ready");
       return;
     }
 
     setStatus("sending");
     try {
-      const response = await fetch(PERSONALIZATION_ENDPOINT, {
+      const response = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "text/plain;charset=UTF-8" },
         body: JSON.stringify(payload),
